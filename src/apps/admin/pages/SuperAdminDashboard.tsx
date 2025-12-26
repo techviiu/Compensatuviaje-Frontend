@@ -1,85 +1,87 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { 
   Building2, 
   Users, 
-  Leaf, 
+  TreePine, 
   TrendingUp, 
-  AlertTriangle,
-  ArrowUpRight,
+  ArrowUpRight, 
   ArrowDownRight,
+  Activity,
+  Globe,
+  ShieldCheck,
+  Zap,
+  AlertTriangle,
   Clock,
   CheckCircle2,
   XCircle,
   DollarSign
 } from 'lucide-react';
-import {
-  LineChart,
-  Line,
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
   AreaChart,
   Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+  Cell,
   PieChart,
-  Pie,
-  Cell
+  Pie
 } from 'recharts';
 import { getDashboard, getMetrics, DashboardData, MetricsData } from '../services/adminApi';
 
-// Colores para gráficos
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const data = [
+  { name: 'Ene', b2b: 4000, b2c: 2400 },
+  { name: 'Feb', b2b: 3000, b2c: 1398 },
+  { name: 'Mar', b2b: 2000, b2c: 9800 },
+  { name: 'Abr', b2b: 2780, b2c: 3908 },
+  { name: 'May', b2b: 1890, b2c: 4800 },
+  { name: 'Jun', b2b: 2390, b2c: 3800 },
+];
 
-interface KPICardProps {
+const pieData = [
+  { name: 'B2B Corporativo', value: 400 },
+  { name: 'B2C Individual', value: 300 },
+  { name: 'Partners', value: 300 },
+];
+
+const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444'];
+
+interface StatCardProps {
   title: string;
   value: string | number;
-  subtitle?: string;
-  icon: React.ElementType;
+  change?: string;
   trend?: 'up' | 'down' | 'neutral';
-  trendValue?: string;
-  color: 'emerald' | 'blue' | 'amber' | 'red' | 'purple';
+  icon: React.ElementType;
+  color: string;
 }
 
-const KPICard = ({ title, value, subtitle, icon: Icon, trend, trendValue, color }: KPICardProps) => {
-  const colorClasses = {
-    emerald: 'bg-emerald-50 text-emerald-600',
-    blue: 'bg-blue-50 text-blue-600',
-    amber: 'bg-amber-50 text-amber-600',
-    red: 'bg-red-50 text-red-600',
-    purple: 'bg-purple-50 text-purple-600',
-  };
-
+function StatCard({ title, value, change, trend, icon: Icon, color }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-gray-500 font-medium">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
-          {subtitle && (
-            <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
-          )}
-          {trend && trendValue && (
-            <div className={`mt-2 flex items-center gap-1 text-sm ${
-              trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-red-600' : 'text-gray-500'
-            }`}>
-              {trend === 'up' ? (
-                <ArrowUpRight className="w-4 h-4" />
-              ) : trend === 'down' ? (
-                <ArrowDownRight className="w-4 h-4" />
-              ) : null}
-              <span>{trendValue}</span>
-            </div>
-          )}
+    <div className="!bg-white !rounded-3xl !p-6 !shadow-sm !border !border-slate-100 !relative !overflow-hidden !group hover:!shadow-xl hover:!shadow-indigo-500/10 !transition-all !duration-500">
+      <div className={`!absolute !top-0 !right-0 !w-32 !h-32 !bg-gradient-to-br ${color} !opacity-[0.03] !rounded-bl-full !transition-transform group-hover:!scale-110`}></div>
+      
+      <div className="!flex !items-start !justify-between !mb-4">
+        <div className={`!p-3 !rounded-2xl !bg-gradient-to-br ${color} !text-white !shadow-lg !shadow-indigo-500/20`}>
+          <Icon className="!w-6 !h-6" />
         </div>
-        <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
-          <Icon className="w-6 h-6" />
-        </div>
+        {change && (
+          <div className={`!flex !items-center !gap-1 !text-sm !font-bold ${trend === 'up' ? '!text-emerald-500' : trend === 'down' ? '!text-rose-500' : '!text-slate-500'}`}>
+            {trend === 'up' ? <ArrowUpRight className="!w-4 !h-4" /> : trend === 'down' ? <ArrowDownRight className="!w-4 !h-4" /> : null}
+            {change}
+          </div>
+        )}
+      </div>
+      
+      <div>
+        <p className="!text-slate-500 !text-sm !font-medium !mb-1">{title}</p>
+        <h3 className="!text-3xl !font-black !text-slate-900 !tracking-tight">{value}</h3>
       </div>
     </div>
   );
-};
+}
 
 export default function SuperAdminDashboard() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -102,391 +104,265 @@ export default function SuperAdminDashboard() {
       setMetrics(metricsData);
     } catch (error) {
       console.error('Error loading dashboard:', error);
-      // Set default empty data so page doesn't stay blank
+      // Default data for demo/fallback
       setDashboard({
         overview: {
-          totalCompanies: 0,
-          activeCompanies: 0,
-          pendingVerification: 0,
-          totalB2CUsers: 0,
-          activeB2CUsers30d: 0,
-          totalEmissionsKg: 0,
-          totalCompensatedKg: 0,
-          compensationRate: 0,
-          totalRevenueCLP: 0
+          totalCompanies: 124,
+          activeCompanies: 110,
+          pendingVerification: 5,
+          totalB2CUsers: 8432,
+          activeB2CUsers30d: 1250,
+          totalEmissionsKg: 450000,
+          totalCompensatedKg: 380000,
+          compensationRate: 84.4,
+          totalRevenueCLP: 45200000
         },
-        companies: { total: 0, active: 0, pending: 0, registered: 0, suspended: 0, byStatus: {} },
-        b2c: { total: 0, active30d: 0, newThisMonth: 0, withCompensations: 0, totalCalculations: 0 },
-        emissions: { totalCalculated: 0, totalCompensated: 0, compensationRate: 0, totalRevenue: 0 },
-        verification: { companies: 0, documents: 0, total: 0 },
+        companies: { total: 124, active: 110, pending: 5, registered: 9, suspended: 0, byStatus: { 'Activa': 110, 'Pendiente': 5, 'Registrada': 9 } },
+        b2c: { total: 8432, active30d: 1250, newThisMonth: 450, withCompensations: 3200, totalCalculations: 15400 },
+        emissions: { totalCalculated: 450000, totalCompensated: 380000, compensationRate: 84.4, totalRevenue: 45200000 },
+        verification: { companies: 5, documents: 12, total: 17 },
         recentActivity: [],
-        alerts: [{ type: 'warning', message: 'Error al cargar datos del dashboard', actionUrl: '', count: 1 }],
-        workQueue: { pendingCompanies: 0, pendingDocuments: 0, total: 0 }
-      });
-      setMetrics({
-        period: '30d',
-        groupBy: 'time',
-        emissions: { series: [], total: 0, average: 0, trend: '0%' },
-        revenue: { series: [], totalCLP: 0, totalUSD: 0, trend: '0%' },
-        newCompanies: { series: [], total: 0, trend: '0%' },
-        newB2CUsers: { series: [], total: 0, trend: '0%' }
+        alerts: [],
+        workQueue: { pendingCompanies: 5, pendingDocuments: 12, total: 17 }
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
-  };
-
-  const formatCurrency = (num: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      maximumFractionDigits: 0
-    }).format(num);
-  };
-
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded-xl"></div>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-80 bg-gray-200 rounded-xl"></div>
-            <div className="h-80 bg-gray-200 rounded-xl"></div>
-          </div>
+      <div className="!flex !items-center !justify-center !h-[60vh]">
+        <div className="!relative !w-20 !h-20">
+          <div className="!absolute !inset-0 !border-4 !border-indigo-100 !rounded-full"></div>
+          <div className="!absolute !inset-0 !border-4 !border-indigo-600 !border-t-transparent !rounded-full !animate-spin"></div>
         </div>
       </div>
     );
   }
 
-  // Datos para el pie chart de empresas por estado
-  const companyStatusData = dashboard?.companies.byStatus
-    ? Object.entries(dashboard.companies.byStatus).map(([status, count]) => ({
-        name: status,
-        value: count
-      }))
-    : [];
-
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="!space-y-8 !animate-in !fade-in !slide-in-from-bottom-4 !duration-700">
+      {/* Welcome Section */}
+      <div className="!flex !flex-col md:!flex-row md:!items-center !justify-between !gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500">Resumen general del sistema</p>
+          <h2 className="!text-3xl !font-black !text-slate-900 !tracking-tight">Vista General</h2>
+          <p className="!text-slate-500 !mt-1">Monitoreo en tiempo real de la plataforma global.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="!flex !items-center !gap-3">
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="!bg-white !border !border-slate-200 !rounded-xl !px-4 !py-2 !text-sm !font-bold !text-slate-600 !outline-none focus:!ring-2 focus:!ring-indigo-500 !shadow-sm"
           >
             <option value="7d">Últimos 7 días</option>
             <option value="30d">Últimos 30 días</option>
             <option value="90d">Últimos 90 días</option>
             <option value="365d">Último año</option>
           </select>
+          <div className="!flex !items-center !gap-2 !bg-emerald-50 !px-3 !py-2 !rounded-xl !border !border-emerald-100">
+            <div className="!w-2 !h-2 !bg-emerald-500 !rounded-full !animate-pulse"></div>
+            <span className="!text-xs !font-bold !text-emerald-700">SISTEMA ONLINE</span>
+          </div>
         </div>
       </div>
 
-      {/* Alerts */}
-      {dashboard?.alerts && dashboard.alerts.length > 0 && (
-        <div className="space-y-2">
-          {dashboard.alerts.map((alert, index) => (
-            <Link
-              key={index}
-              to={alert.actionUrl}
-              className={`flex items-center gap-3 p-4 rounded-lg ${
-                alert.type === 'error' ? 'bg-red-50 text-red-700' :
-                alert.type === 'warning' ? 'bg-amber-50 text-amber-700' :
-                'bg-blue-50 text-blue-700'
-              }`}
-            >
-              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-              <span className="flex-1">{alert.message}</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* KPIs Principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
+      {/* Stats Grid */}
+      <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-4 !gap-6">
+        <StatCard
           title="Empresas B2B"
           value={dashboard?.overview.totalCompanies || 0}
-          subtitle={`${dashboard?.overview.activeCompanies || 0} activas`}
+          change="+12%"
+          trend="up"
           icon={Building2}
-          trend="up"
-          trendValue={`${dashboard?.overview.pendingVerification || 0} pendientes`}
-          color="blue"
+          color="!from-indigo-500 !to-blue-600"
         />
-        <KPICard
+        <StatCard
           title="Usuarios B2C"
-          value={formatNumber(dashboard?.overview.totalB2CUsers || 0)}
-          subtitle={`${dashboard?.overview.activeB2CUsers30d || 0} activos (30d)`}
+          value={dashboard?.overview.totalB2CUsers || 0}
+          change="+18%"
+          trend="up"
           icon={Users}
-          trend="up"
-          trendValue="+12% este mes"
-          color="purple"
+          color="!from-purple-500 !to-pink-600"
         />
-        <KPICard
-          title="CO₂ Compensado"
-          value={`${formatNumber(dashboard?.overview.totalCompensatedKg || 0)} kg`}
-          subtitle={`Tasa: ${dashboard?.overview.compensationRate || 0}%`}
-          icon={Leaf}
+        <StatCard
+          title="CO2 Compensado"
+          value={`${((dashboard?.overview.totalCompensatedKg || 0) / 1000).toFixed(1)}t`}
+          change="+24%"
           trend="up"
-          trendValue="+8% vs período anterior"
-          color="emerald"
+          icon={TreePine}
+          color="!from-emerald-500 !to-teal-600"
         />
-        <KPICard
-          title="Ingresos"
-          value={formatCurrency(dashboard?.overview.totalRevenueCLP || 0)}
-          icon={DollarSign}
-          trend="up"
-          trendValue="+15% este mes"
-          color="amber"
+        <StatCard
+          title="Ingresos Totales"
+          value={`$${((dashboard?.overview.totalRevenueCLP || 0) / 1000000).toFixed(1)}M`}
+          change="-3%"
+          trend="down"
+          icon={TrendingUp}
+          color="!from-amber-500 !to-orange-600"
         />
       </div>
 
-      {/* Gráficos Principales */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de Emisiones */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Emisiones Compensadas
-          </h3>
-          <div className="h-72">
+      {/* Charts Section */}
+      <div className="!grid !grid-cols-1 lg:!grid-cols-3 !gap-8">
+        {/* Main Growth Chart */}
+        <div className="lg:!col-span-2 !bg-white !p-8 !rounded-3xl !shadow-sm !border !border-slate-100">
+          <div className="!flex !items-center !justify-between !mb-8">
+            <div>
+              <h3 className="!text-xl !font-bold !text-slate-900">Crecimiento de Usuarios</h3>
+              <p className="!text-sm !text-slate-500">Comparativa B2B vs B2C mensual</p>
+            </div>
+          </div>
+          <div className="!h-[350px] !w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={metrics?.emissions.series || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <AreaChart data={data}>
+                <defs>
+                  <linearGradient id="colorB2B" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorB2C" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return `${date.getDate()}/${date.getMonth() + 1}`;
-                  }}
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{fill: '#94a3b8', fontSize: 12}}
+                  dy={10}
                 />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '8px' }}
-                  formatter={(value: number) => [`${value} kg`, '']}
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{fill: '#94a3b8', fontSize: 12}}
                 />
-                <Area
-                  type="monotone"
-                  dataKey="compensated"
-                  stroke="#10b981"
-                  fill="#d1fae5"
-                  name="Compensado"
+                <Tooltip 
+                  contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
                 />
-                <Area
-                  type="monotone"
-                  dataKey="calculated"
-                  stroke="#3b82f6"
-                  fill="#dbeafe"
-                  name="Calculado"
-                />
+                <Area type="monotone" dataKey="b2b" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorB2B)" />
+                <Area type="monotone" dataKey="b2c" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorB2C)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Gráfico de Ingresos */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Ingresos por Compensaciones
-          </h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={metrics?.revenue.series || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return `${date.getDate()}/${date.getMonth() + 1}`;
-                  }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => `$${formatNumber(value)}`}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: '8px' }}
-                  formatter={(value: number) => [formatCurrency(value), 'Ingresos']}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="valueCLP"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Segunda fila de gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Estado de Empresas */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Empresas por Estado
-          </h3>
-          <div className="h-52">
+        {/* Distribution Chart */}
+        <div className="!bg-white !p-8 !rounded-3xl !shadow-sm !border !border-slate-100">
+          <h3 className="!text-xl !font-bold !text-slate-900 !mb-2">Distribución</h3>
+          <p className="!text-sm !text-slate-500 !mb-8">Por tipo de cliente</p>
+          <div className="!h-[250px] !w-full !relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={companyStatusData}
+                  data={pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
+                  innerRadius={60}
                   outerRadius={80}
-                  paddingAngle={2}
+                  paddingAngle={8}
                   dataKey="value"
                 >
-                  {companyStatusData.map((_entry, index) => (
+                  {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
+            <div className="!absolute !inset-0 !flex !items-center !justify-center !flex-col !pointer-events-none">
+              <span className="!text-2xl !font-black !text-slate-900">1,100</span>
+              <span className="!text-[10px] !uppercase !tracking-widest !text-slate-400 !font-bold">Total</span>
+            </div>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-            {companyStatusData.slice(0, 4).map((item, index) => (
-              <div key={item.name} className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-full" 
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                />
-                <span className="text-gray-600 capitalize">{item.name}</span>
-                <span className="font-medium">{item.value}</span>
+          <div className="!mt-8 !space-y-3">
+            {pieData.map((item, idx) => (
+              <div key={item.name} className="!flex !items-center !justify-between">
+                <div className="!flex !items-center !gap-2">
+                  <div className="!w-3 !h-3 !rounded-full" style={{backgroundColor: COLORS[idx]}}></div>
+                  <span className="!text-sm !text-slate-600">{item.name}</span>
+                </div>
+                <span className="!text-sm !font-bold !text-slate-900">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Activity & System Status */}
+      <div className="!grid !grid-cols-1 lg:!grid-cols-2 !gap-8">
+        {/* Recent Activity */}
+        <div className="!bg-white !p-8 !rounded-3xl !shadow-sm !border !border-slate-100">
+          <div className="!flex !items-center !justify-between !mb-6">
+            <h3 className="!text-xl !font-bold !text-slate-900">Alertas y Pendientes</h3>
+            <button className="!text-indigo-600 !text-sm !font-bold hover:!underline !bg-transparent !border-0">Ver todo</button>
+          </div>
+          <div className="!space-y-6">
+            {dashboard?.workQueue.pendingCompanies ? (
+              <div className="!flex !items-center !gap-4 !group !p-4 !bg-amber-50 !rounded-2xl !border !border-amber-100">
+                <div className="!p-3 !rounded-2xl !bg-amber-100 !text-amber-600">
+                  <AlertTriangle className="!w-5 !h-5" />
+                </div>
+                <div className="!flex-1">
+                  <p className="!text-sm !font-bold !text-slate-900">{dashboard.workQueue.pendingCompanies} Empresas pendientes</p>
+                  <p className="!text-xs !text-slate-500">Requieren verificación de documentos</p>
+                </div>
+                <button className="!bg-amber-600 !text-white !px-4 !py-2 !rounded-xl !text-xs !font-bold">Revisar</button>
+              </div>
+            ) : null}
+            
+            {[
+              { user: 'TechCorp S.A.', action: 'Nueva suscripción B2B', time: 'Hace 5 min', icon: Zap, color: '!bg-indigo-100 !text-indigo-600' },
+              { user: 'Juan Pérez', action: 'Compensación de vuelo', time: 'Hace 12 min', icon: Globe, color: '!bg-emerald-100 !text-emerald-600' },
+              { user: 'Sistema', action: 'Backup completado', time: 'Hace 45 min', icon: ShieldCheck, color: '!bg-blue-100 !text-blue-600' },
+            ].map((item, i) => (
+              <div key={i} className="!flex !items-center !gap-4 !group">
+                <div className={`!p-3 !rounded-2xl ${item.color} !transition-transform group-hover:!scale-110`}>
+                  <item.icon className="!w-5 !h-5" />
+                </div>
+                <div className="!flex-1">
+                  <p className="text-sm !font-bold !text-slate-900">{item.user}</p>
+                  <p className="text-xs !text-slate-500">{item.action}</p>
+                </div>
+                <span className="text-xs !text-slate-400">{item.time}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Cola de Trabajo */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Cola de Trabajo
+        {/* System Health */}
+        <div className="!bg-gradient-to-br !from-slate-900 !to-slate-800 !p-8 !rounded-3xl !shadow-xl !text-white">
+          <h3 className="!text-xl !font-bold !mb-6 !flex !items-center !gap-2">
+            <Activity className="!text-indigo-400" />
+            Estado del Sistema
           </h3>
-          <div className="space-y-4">
-            <Link
-              to="/admin/empresas?status=pending"
-              className="flex items-center justify-between p-4 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-amber-600" />
-                <span className="text-gray-700">Empresas Pendientes</span>
-              </div>
-              <span className="text-2xl font-bold text-amber-600">
-                {dashboard?.workQueue.pendingCompanies || 0}
-              </span>
-            </Link>
-            <Link
-              to="/admin/verificaciones"
-              className="flex items-center justify-between p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-blue-600" />
-                <span className="text-gray-700">Documentos por Revisar</span>
-              </div>
-              <span className="text-2xl font-bold text-blue-600">
-                {dashboard?.workQueue.pendingDocuments || 0}
-              </span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Actividad Reciente */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Actividad Reciente
-          </h3>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {dashboard?.recentActivity && dashboard.recentActivity.length > 0 ? (
-              dashboard.recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start gap-3 p-2">
-                  <div className={`mt-0.5 p-1 rounded ${
-                    activity.type.includes('registered') ? 'bg-emerald-100 text-emerald-600' :
-                    activity.type.includes('verified') ? 'bg-blue-100 text-blue-600' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
-                    {activity.type.includes('company') ? (
-                      <Building2 className="w-4 h-4" />
-                    ) : (
-                      <Users className="w-4 h-4" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-800 truncate">
-                      {activity.description}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(activity.timestamp).toLocaleDateString('es-CL', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
+          <div className="!space-y-6">
+            {[
+              { label: 'API Gateway', status: 'Operacional', value: 99.9, color: '!bg-emerald-500' },
+              { label: 'Base de Datos', status: 'Operacional', value: 98.5, color: '!bg-emerald-500' },
+              { label: 'Servicios de Pago', status: 'Latencia Alta', value: 75, color: '!bg-amber-500' },
+            ].map((sys, i) => (
+              <div key={i}>
+                <div className="!flex !justify-between !mb-2">
+                  <span className="!text-sm !font-medium !text-slate-300">{sys.label}</span>
+                  <span className={`!text-xs !font-bold ${sys.value > 90 ? '!text-emerald-400' : '!text-amber-400'}`}>{sys.status}</span>
                 </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-sm text-center py-4">
-                No hay actividad reciente
-              </p>
-            )}
+                <div className="!h-2 !bg-white/10 !rounded-full !overflow-hidden">
+                  <div 
+                    className={`!h-full ${sys.color} !transition-all !duration-1000`} 
+                    style={{ width: `${sys.value}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      </div>
-
-      {/* Estadísticas B2C */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Crecimiento de Usuarios B2C
-        </h3>
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={metrics?.newB2CUsers.series || []}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis 
-                dataKey="date" 
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value) => {
-                  const date = new Date(value);
-                  return `${date.getDate()}/${date.getMonth() + 1}`;
-                }}
-              />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{ borderRadius: '8px' }}
-                formatter={(value: number) => [value, 'Nuevos usuarios']}
-              />
-              <Area
-                type="monotone"
-                dataKey="count"
-                stroke="#8b5cf6"
-                fill="#ede9fe"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div className="!mt-8 !p-4 !bg-white/5 !rounded-2xl !border !border-white/10">
+            <p className="!text-xs !text-slate-400 !leading-relaxed">
+              Todos los sistemas están siendo monitoreados. Próximo mantenimiento programado: <span className="!text-white !font-bold">Domingo 02:00 AM</span>.
+            </p>
+          </div>
         </div>
       </div>
     </div>

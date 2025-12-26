@@ -12,16 +12,18 @@ import {
   Clock,
   MoreVertical,
   Download,
-  ArrowUpDown
+  ArrowUpDown,
+  Plus,
+  ExternalLink
 } from 'lucide-react';
 import { getCompanies, Company, CompaniesListResponse, updateCompanyStatus } from '../services/adminApi';
 
-const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  registered: { label: 'Registrada', color: 'text-gray-700', bgColor: 'bg-gray-100' },
-  pending_contract: { label: 'Pendiente Contrato', color: 'text-amber-700', bgColor: 'bg-amber-100' },
-  signed: { label: 'Contrato Firmado', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  active: { label: 'Activa', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
-  suspended: { label: 'Suspendida', color: 'text-red-700', bgColor: 'bg-red-100' },
+const statusConfig: Record<string, { label: string; color: string; bgColor: string; dot: string }> = {
+  registered: { label: 'Registrada', color: 'text-slate-700', bgColor: 'bg-slate-100', dot: 'bg-slate-400' },
+  pending_contract: { label: 'Pendiente Contrato', color: 'text-amber-700', bgColor: 'bg-amber-100', dot: 'bg-amber-500' },
+  signed: { label: 'Contrato Firmado', color: 'text-blue-700', bgColor: 'bg-blue-100', dot: 'bg-blue-500' },
+  active: { label: 'Activa', color: 'text-emerald-700', bgColor: 'bg-emerald-100', dot: 'bg-emerald-500' },
+  suspended: { label: 'Suspendida', color: 'text-rose-700', bgColor: 'bg-rose-100', dot: 'bg-rose-500' },
 };
 
 export default function EmpresasPage() {
@@ -36,8 +38,6 @@ export default function EmpresasPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -91,296 +91,172 @@ export default function EmpresasPage() {
     setStatusFilter(status);
   };
 
-  const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams);
-    params.set('page', newPage.toString());
-    setSearchParams(params);
-  };
-
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
-    }
-  };
-
-  const handleStatusChange = async (companyId: string, newStatus: string) => {
-    try {
-      await updateCompanyStatus(companyId, newStatus);
-      loadCompanies();
-      setSelectedCompany(null);
-    } catch (error) {
-      console.error('Error updating status:', error);
-    }
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('es-CL', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="!space-y-8 !animate-in !fade-in !slide-in-from-bottom-4 !duration-700">
+      {/* Header Section */}
+      <div className="!flex !flex-col md:!flex-row md:!items-center !justify-between !gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Empresas B2B</h1>
-          <p className="text-gray-500">Gestiona todas las empresas registradas</p>
+          <h2 className="!text-3xl !font-black !text-slate-900 !tracking-tight">Empresas B2B</h2>
+          <p className="!text-slate-500 !mt-1">Gestiona y verifica las empresas registradas en la plataforma.</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-          <Download className="w-4 h-4" />
-          Exportar
-        </button>
+        <div className="!flex !items-center !gap-3">
+          <button className="!flex !items-center !gap-2 !bg-white !text-slate-700 !px-4 !py-2.5 !rounded-xl !border !border-slate-200 !font-bold !text-sm hover:!bg-slate-50 !transition-all !shadow-sm">
+            <Download className="!w-4 !h-4" />
+            Exportar
+          </button>
+          <button className="!flex !items-center !gap-2 !bg-indigo-600 !text-white !px-4 !py-2.5 !rounded-xl !font-bold !text-sm hover:!bg-indigo-700 !transition-all !shadow-lg !shadow-indigo-200">
+            <Plus className="!w-4 !h-4" />
+            Nueva Empresa
+          </button>
+        </div>
       </div>
 
-      {/* Filtros y Búsqueda */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Búsqueda */}
-          <form onSubmit={handleSearch} className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nombre, RUT o correo..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
-            </div>
-          </form>
-
-          {/* Filtro de estado */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 lg:hidden"
-            >
-              <Filter className="w-4 h-4" />
-              Filtros
-            </button>
-
-            <div className="hidden lg:flex items-center gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => handleStatusFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >
-                <option value="">Todos los estados</option>
-                {Object.entries(statusConfig).map(([key, config]) => (
-                  <option key={key} value={key}>{config.label}</option>
-                ))}
-              </select>
-            </div>
+      {/* Filters & Search */}
+      <div className="!bg-white !p-6 !rounded-3xl !shadow-sm !border !border-slate-100">
+        <form onSubmit={handleSearch} className="!flex !flex-col md:!flex-row !gap-4">
+          <div className="!flex-1 !relative">
+            <Search className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !text-slate-400 !w-5 !h-5" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, RUT o email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="!w-full !pl-12 !pr-4 !py-3 !bg-slate-50 !border-0 !rounded-2xl !text-slate-900 !placeholder-slate-400 focus:!ring-2 focus:!ring-indigo-500 !outline-none !transition-all"
+            />
           </div>
-        </div>
-
-        {/* Filtros móvil */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-200 lg:hidden">
+          <div className="!flex !gap-4">
             <select
               value={statusFilter}
               onChange={(e) => handleStatusFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="!bg-slate-50 !border-0 !rounded-2xl !px-6 !py-3 !text-slate-600 !font-bold !text-sm !outline-none focus:!ring-2 focus:!ring-indigo-500 !min-w-[180px]"
             >
               <option value="">Todos los estados</option>
-              {Object.entries(statusConfig).map(([key, config]) => (
-                <option key={key} value={key}>{config.label}</option>
-              ))}
+              <option value="registered">Registrada</option>
+              <option value="pending_contract">Pendiente Contrato</option>
+              <option value="signed">Contrato Firmado</option>
+              <option value="active">Activa</option>
+              <option value="suspended">Suspendida</option>
             </select>
+            <button type="submit" className="!bg-slate-900 !text-white !px-8 !py-3 !rounded-2xl !font-bold !text-sm hover:!bg-slate-800 !transition-all">
+              Filtrar
+            </button>
           </div>
-        )}
+        </form>
       </div>
 
-      {/* Tabla */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {loading ? (
-          <div className="p-8 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
-            ))}
-          </div>
-        ) : companies.length === 0 ? (
-          <div className="p-12 text-center">
-            <Building2 className="w-12 h-12 mx-auto text-gray-300" />
-            <p className="mt-4 text-gray-500">No se encontraron empresas</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-6 py-3 text-left">
-                    <button
-                      onClick={() => handleSort('nombreComercial')}
-                      className="flex items-center gap-1 text-xs font-semibold text-gray-600 uppercase tracking-wider hover:text-gray-900"
-                    >
-                      Empresa
-                      <ArrowUpDown className="w-3 h-3" />
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    RUT
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Industria
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left">
-                    <button
-                      onClick={() => handleSort('createdAt')}
-                      className="flex items-center gap-1 text-xs font-semibold text-gray-600 uppercase tracking-wider hover:text-gray-900"
-                    >
-                      Registro
-                      <ArrowUpDown className="w-3 h-3" />
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {companies.map((company) => (
-                  <tr key={company.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-emerald-600" />
+      {/* Table Section */}
+      <div className="!bg-white !rounded-3xl !shadow-sm !border !border-slate-100 !overflow-hidden">
+        <div className="!overflow-x-auto">
+          <table className="!w-full !text-left !border-collapse">
+            <thead>
+              <tr className="!bg-slate-50/50 !border-b !border-slate-100">
+                <th className="!px-6 !py-5 !text-xs !font-black !text-slate-400 !uppercase !tracking-widest">Empresa</th>
+                <th className="!px-6 !py-5 !text-xs !font-black !text-slate-400 !uppercase !tracking-widest">RUT / ID</th>
+                <th className="!px-6 !py-5 !text-xs !font-black !text-slate-400 !uppercase !tracking-widest">Estado</th>
+                <th className="!px-6 !py-5 !text-xs !font-black !text-slate-400 !uppercase !tracking-widest">Registro</th>
+                <th className="!px-6 !py-5 !text-xs !font-black !text-slate-400 !uppercase !tracking-widest !text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="!divide-y !divide-slate-50">
+              {loading ? (
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="!animate-pulse">
+                    <td colSpan={5} className="!px-6 !py-8">
+                      <div className="!h-4 !bg-slate-100 !rounded-full !w-full"></div>
+                    </td>
+                  </tr>
+                ))
+              ) : companies.length > 0 ? (
+                companies.map((company) => (
+                  <tr key={company.id} className="hover:!bg-slate-50/50 !transition-colors !group">
+                    <td className="!px-6 !py-5">
+                      <div className="!flex !items-center !gap-4">
+                        <div className="!w-12 !h-12 !rounded-2xl !bg-indigo-50 !text-indigo-600 !flex !items-center !justify-center !font-black !text-lg !shadow-sm">
+                          {(company.nombreComercial || company.razonSocial).charAt(0)}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">
-                            {company.nombreComercial || company.razonSocial}
-                          </p>
-                          {company.nombreComercial && (
-                            <p className="text-sm text-gray-500">
-                              {company.razonSocial}
-                            </p>
-                          )}
+                          <p className="!font-bold !text-slate-900">{company.nombreComercial || company.razonSocial}</p>
+                          <p className="!text-xs !text-slate-500">{company.razonSocial}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {company.rut}
+                    <td className="!px-6 !py-5">
+                      <span className="!text-sm !font-medium !text-slate-600">{company.rut || 'N/A'}</span>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {company.industria || '-'}
+                    <td className="!px-6 !py-5">
+                      <div className={`!inline-flex !items-center !gap-2 !px-3 !py-1.5 !rounded-full !text-xs !font-bold ${statusConfig[company.status]?.bgColor} ${statusConfig[company.status]?.color}`}>
+                        <div className={`!w-1.5 !h-1.5 !rounded-full ${statusConfig[company.status]?.dot}`}></div>
+                        {statusConfig[company.status]?.label}
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        statusConfig[company.status]?.bgColor || 'bg-gray-100'
-                      } ${statusConfig[company.status]?.color || 'text-gray-700'}`}>
-                        {statusConfig[company.status]?.label || company.status}
-                      </span>
+                    <td className="!px-6 !py-5">
+                      <p className="!text-sm !text-slate-600">{new Date(company.createdAt).toLocaleDateString()}</p>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {formatDate(company.createdAt)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="!px-6 !py-5 !text-right">
+                      <div className="!flex !items-center !justify-end !gap-2">
                         <Link
                           to={`/admin/empresas/${company.id}`}
-                          className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                          title="Ver detalle"
+                          className="!p-2 !rounded-xl !bg-slate-100 !text-slate-600 hover:!bg-indigo-600 hover:!text-white !transition-all"
+                          title="Ver detalles"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="!w-4 !h-4" />
                         </Link>
-                        <div className="relative">
-                          <button
-                            onClick={() => setSelectedCompany(
-                              selectedCompany === company.id ? null : company.id
-                            )}
-                            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                          
-                          {selectedCompany === company.id && (
-                            <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                              {company.status !== 'active' && (
-                                <button
-                                  onClick={() => handleStatusChange(company.id, 'active')}
-                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                                  Activar
-                                </button>
-                              )}
-                              {company.status !== 'suspended' && (
-                                <button
-                                  onClick={() => handleStatusChange(company.id, 'suspended')}
-                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                  <XCircle className="w-4 h-4 text-red-600" />
-                                  Suspender
-                                </button>
-                              )}
-                              {company.status === 'registered' && (
-                                <button
-                                  onClick={() => handleStatusChange(company.id, 'pending_contract')}
-                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                  <Clock className="w-4 h-4 text-amber-600" />
-                                  Enviar Contrato
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        <button className="!p-2 !rounded-xl !bg-slate-100 !text-slate-600 hover:!bg-slate-900 hover:!text-white !transition-all">
+                          <MoreVertical className="!w-4 !h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="!px-6 !py-20 !text-center">
+                    <div className="!flex !flex-col !items-center !gap-4">
+                      <div className="!w-20 !h-20 !bg-slate-50 !rounded-full !flex !items-center !justify-center">
+                        <Building2 className="!w-10 !h-10 !text-slate-300" />
+                      </div>
+                      <p className="!text-slate-500 !font-medium">No se encontraron empresas</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-        {/* Paginación */}
-        {pagination.totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <p className="text-sm text-gray-500">
-              Mostrando {((pagination.page - 1) * pagination.limit) + 1} a{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} de{' '}
-              {pagination.total} empresas
+        {/* Pagination */}
+        {!loading && pagination.totalPages > 1 && (
+          <div className="!px-6 !py-6 !bg-slate-50/50 !border-t !border-slate-100 !flex !items-center !justify-between">
+            <p className="!text-sm !text-slate-500">
+              Mostrando <span className="!font-bold !text-slate-900">{companies.length}</span> de <span className="!font-bold !text-slate-900">{pagination.total}</span> empresas
             </p>
-            <div className="flex items-center gap-2">
+            <div className="!flex !items-center !gap-2">
               <button
-                onClick={() => handlePageChange(pagination.page - 1)}
+                onClick={() => pagination.page > 1 && setSearchParams({ page: (pagination.page - 1).toString() })}
                 disabled={pagination.page === 1}
-                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="!p-2 !rounded-xl !bg-white !border !border-slate-200 !text-slate-600 disabled:!opacity-50 hover:!bg-slate-50 !transition-all"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="!w-5 !h-5" />
               </button>
-              {[...Array(Math.min(5, pagination.totalPages))].map((_, i) => {
-                const pageNum = i + 1;
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`w-10 h-10 rounded-lg text-sm font-medium ${
-                      pagination.page === pageNum
-                        ? 'bg-emerald-600 text-white'
-                        : 'border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
+              {[...Array(pagination.totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSearchParams({ page: (i + 1).toString() })}
+                  className={`!w-10 !h-10 !rounded-xl !text-sm !font-bold !transition-all ${
+                    pagination.page === i + 1
+                      ? '!bg-indigo-600 !text-white !shadow-lg !shadow-indigo-200'
+                      : '!bg-white !border !border-slate-200 !text-slate-600 hover:!bg-slate-50'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
               <button
-                onClick={() => handlePageChange(pagination.page + 1)}
+                onClick={() => pagination.page < pagination.totalPages && setSearchParams({ page: (pagination.page + 1).toString() })}
                 disabled={pagination.page === pagination.totalPages}
-                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="!p-2 !rounded-xl !bg-white !border !border-slate-200 !text-slate-600 disabled:!opacity-50 hover:!bg-slate-50 !transition-all"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="!w-5 !h-5" />
               </button>
             </div>
           </div>

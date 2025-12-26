@@ -16,7 +16,11 @@ import {
   ArrowUpDown,
   X,
   Save,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Globe,
+  Activity,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { 
   getProjects, 
@@ -30,14 +34,14 @@ import {
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
   active: { label: 'Activo', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
-  inactive: { label: 'Inactivo', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  inactive: { label: 'Inactivo', color: 'text-slate-600', bgColor: 'bg-slate-100' },
   coming_soon: { label: 'Próximamente', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   deleted: { label: 'Eliminado', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
 const projectTypeConfig: Record<string, { label: string; color: string }> = {
-  reforestation: { label: 'Reforestación', color: 'bg-green-100 text-green-700' },
-  renewable_energy: { label: 'Energía Renovable', color: 'bg-yellow-100 text-yellow-700' },
+  reforestation: { label: 'Reforestación', color: 'bg-emerald-100 text-emerald-700' },
+  renewable_energy: { label: 'Energía Renovable', color: 'bg-amber-100 text-amber-700' },
   conservation: { label: 'Conservación', color: 'bg-blue-100 text-blue-700' },
   methane_capture: { label: 'Captura de Metano', color: 'bg-purple-100 text-purple-700' },
   ocean_restoration: { label: 'Restauración Oceánica', color: 'bg-cyan-100 text-cyan-700' },
@@ -210,166 +214,145 @@ export default function ProyectosPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-
     try {
-      const data = {
+      // Convert empty strings to null for numeric fields
+      const payload = {
         ...formData,
-        pricePerTonCLP: formData.pricePerTonCLP || null,
-        pricePerTonUSD: formData.pricePerTonUSD || null,
-        availableCredits: formData.availableCredits || 0,
-        totalCredits: formData.totalCredits || 0
+        pricePerTonCLP: formData.pricePerTonCLP === '' ? null : Number(formData.pricePerTonCLP),
+        pricePerTonUSD: formData.pricePerTonUSD === '' ? null : Number(formData.pricePerTonUSD),
+        availableCredits: formData.availableCredits === '' ? null : Number(formData.availableCredits),
+        totalCredits: formData.totalCredits === '' ? null : Number(formData.totalCredits),
       };
 
       if (modalMode === 'create') {
-        await createProject(data);
+        await createProject(payload);
       } else if (editingProject) {
-        await updateProject(editingProject.id, data);
+        await updateProject(editingProject.id, payload);
       }
-
+      
       setShowModal(false);
       loadData();
       loadStats();
     } catch (error) {
       console.error('Error saving project:', error);
+      alert('Error al guardar el proyecto. Por favor, revisa los datos.');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (projectId: string) => {
+  const handleDelete = async (id: string) => {
     try {
-      await deleteProject(projectId);
+      await deleteProject(id);
       setDeleteConfirm(null);
       loadData();
       loadStats();
     } catch (error) {
       console.error('Error deleting project:', error);
+      alert('Error al eliminar el proyecto.');
     }
   };
 
-  const formatCurrency = (num?: number) => {
-    if (!num) return '-';
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      maximumFractionDigits: 0
-    }).format(num);
-  };
-
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('es-CL').format(num);
-  };
-
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="!space-y-8 !animate-in !fade-in !duration-700">
+      {/* Header Section */}
+      <div className="!flex !flex-col md:!flex-row md:!items-center !justify-between !gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Proyectos ESG</h1>
-          <p className="text-gray-500">Gestiona los proyectos de compensación de carbono</p>
+          <h1 className="!text-4xl !font-black !text-slate-900 !tracking-tight !mb-2">
+            Proyectos <span className="!text-emerald-600">ESG</span>
+          </h1>
+          <p className="!text-slate-500 !font-medium">
+            Gestiona el portafolio de proyectos de compensación de carbono.
+          </p>
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+          className="!flex !items-center !justify-center !gap-2 !bg-emerald-600 !hover:bg-emerald-700 !text-white !px-6 !py-3 !rounded-2xl !font-bold !transition-all !shadow-lg !shadow-emerald-200 !active:scale-95"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="!w-5 !h-5" />
           Nuevo Proyecto
         </button>
       </div>
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Proyectos</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {stats.totalProjects}
-                </p>
-              </div>
-              <div className="p-3 bg-emerald-100 rounded-lg">
-                <TreePine className="w-6 h-6 text-emerald-600" />
-              </div>
+      {/* Stats Grid */}
+      <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-4 !gap-6">
+        <div className="!bg-white !p-6 !rounded-3xl !shadow-sm !border !border-slate-100 !relative !overflow-hidden !group">
+          <div className="!absolute !top-0 !right-0 !w-24 !h-24 !bg-emerald-50 !rounded-bl-full !-mr-8 !-mt-8 !transition-transform !group-hover:scale-110" />
+          <div className="!relative">
+            <div className="!w-12 !h-12 !bg-emerald-100 !rounded-2xl !flex !items-center !justify-center !mb-4">
+              <TreePine className="!w-6 !h-6 !text-emerald-600" />
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Activos</p>
-                <p className="text-3xl font-bold text-emerald-600 mt-1">
-                  {stats.byStatus?.active || 0}
-                </p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <Leaf className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Créditos Disponibles</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">
-                  {formatNumber(stats.credits?.available || 0)}
-                </p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <DollarSign className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Créditos Usados</p>
-                <p className="text-3xl font-bold text-amber-600 mt-1">
-                  {formatNumber(stats.credits?.used || 0)}
-                </p>
-              </div>
-              <div className="p-3 bg-amber-100 rounded-lg">
-                <Leaf className="w-6 h-6 text-amber-600" />
-              </div>
-            </div>
+            <p className="!text-slate-500 !text-sm !font-bold !uppercase !tracking-wider">Total Proyectos</p>
+            <h3 className="!text-3xl !font-black !text-slate-900 !mt-1">{stats?.totalProjects || 0}</h3>
           </div>
         </div>
-      )}
 
-      {/* Filtros y Búsqueda */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <form onSubmit={handleSearch} className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nombre o código..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
+        <div className="!bg-white !p-6 !rounded-3xl !shadow-sm !border !border-slate-100 !relative !overflow-hidden !group">
+          <div className="!absolute !top-0 !right-0 !w-24 !h-24 !bg-blue-50 !rounded-bl-full !-mr-8 !-mt-8 !transition-transform !group-hover:scale-110" />
+          <div className="!relative">
+            <div className="!w-12 !h-12 !bg-blue-100 !rounded-2xl !flex !items-center !justify-center !mb-4">
+              <Leaf className="!w-6 !h-6 !text-blue-600" />
             </div>
-          </form>
+            <p className="!text-slate-500 !text-sm !font-bold !uppercase !tracking-wider">Créditos Disponibles</p>
+            <h3 className="!text-3xl !font-black !text-slate-900 !mt-1">
+              {stats?.totalAvailableCredits?.toLocaleString() || 0} <span className="!text-sm !font-medium !text-slate-400">tCO2e</span>
+            </h3>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-2">
+        <div className="!bg-white !p-6 !rounded-3xl !shadow-sm !border !border-slate-100 !relative !overflow-hidden !group">
+          <div className="!absolute !top-0 !right-0 !w-24 !h-24 !bg-amber-50 !rounded-bl-full !-mr-8 !-mt-8 !transition-transform !group-hover:scale-110" />
+          <div className="!relative">
+            <div className="!w-12 !h-12 !bg-amber-100 !rounded-2xl !flex !items-center !justify-center !mb-4">
+              <Globe className="!w-6 !h-6 !text-amber-600" />
+            </div>
+            <p className="!text-slate-500 !text-sm !font-bold !uppercase !tracking-wider">Países</p>
+            <h3 className="!text-3xl !font-black !text-slate-900 !mt-1">{stats?.countriesCount || 0}</h3>
+          </div>
+        </div>
+
+        <div className="!bg-white !p-6 !rounded-3xl !shadow-sm !border !border-slate-100 !relative !overflow-hidden !group">
+          <div className="!absolute !top-0 !right-0 !w-24 !h-24 !bg-purple-50 !rounded-bl-full !-mr-8 !-mt-8 !transition-transform !group-hover:scale-110" />
+          <div className="!relative">
+            <div className="!w-12 !h-12 !bg-purple-100 !rounded-2xl !flex !items-center !justify-center !mb-4">
+              <Activity className="!w-6 !h-6 !text-purple-600" />
+            </div>
+            <p className="!text-slate-500 !text-sm !font-bold !uppercase !tracking-wider">Tipos de Proyecto</p>
+            <h3 className="!text-3xl !font-black !text-slate-900 !mt-1">{stats?.typesCount || 0}</h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters & Search */}
+      <div className="!bg-white !p-6 !rounded-3xl !shadow-sm !border !border-slate-100">
+        <div className="!flex !flex-col lg:!flex-row !gap-4">
+          <form onSubmit={handleSearch} className="!flex-1 !relative">
+            <Search className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !text-slate-400 !w-5 !h-5" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o código..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="!w-full !pl-12 !pr-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium !transition-all"
+            />
+          </form>
+          
+          <div className="!flex !flex-wrap !gap-3">
             <select
               value={statusFilter}
               onChange={(e) => handleFilter('status', e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="!bg-slate-50 !border-none !rounded-2xl !px-4 !py-3 !font-medium !text-slate-700 !focus:ring-2 !focus:ring-emerald-500 !cursor-pointer"
             >
               <option value="">Todos los estados</option>
-              {Object.entries(statusConfig).map(([key, config]) => (
-                <option key={key} value={key}>{config.label}</option>
-              ))}
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+              <option value="coming_soon">Próximamente</option>
             </select>
 
             <select
               value={typeFilter}
               onChange={(e) => handleFilter('type', e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="!bg-slate-50 !border-none !rounded-2xl !px-4 !py-3 !font-medium !text-slate-700 !focus:ring-2 !focus:ring-emerald-500 !cursor-pointer"
             >
               <option value="">Todos los tipos</option>
               {Object.entries(projectTypeConfig).map(([key, config]) => (
@@ -380,412 +363,366 @@ export default function ProyectosPage() {
         </div>
       </div>
 
-      {/* Tabla */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {loading ? (
-          <div className="p-8 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-20 bg-gray-100 rounded animate-pulse" />
-            ))}
-          </div>
-        ) : projects.length === 0 ? (
-          <div className="p-12 text-center">
-            <TreePine className="w-12 h-12 mx-auto text-gray-300" />
-            <p className="mt-4 text-gray-500">No se encontraron proyectos</p>
-            <button
-              onClick={openCreateModal}
-              className="mt-4 text-emerald-600 hover:text-emerald-700 font-medium"
-            >
-              Crear primer proyecto
-            </button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-6 py-3 text-left">
-                    <button
-                      onClick={() => handleSort('name')}
-                      className="flex items-center gap-1 text-xs font-semibold text-gray-600 uppercase tracking-wider hover:text-gray-900"
-                    >
-                      Proyecto
-                      <ArrowUpDown className="w-3 h-3" />
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Tipo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Ubicación
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Precio/Ton
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Créditos
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Acciones
-                  </th>
+      {/* Projects Table */}
+      <div className="!bg-white !rounded-3xl !shadow-sm !border !border-slate-100 !overflow-hidden">
+        <div className="!overflow-x-auto">
+          <table className="!w-full !text-left !border-collapse">
+            <thead>
+              <tr className="!bg-slate-50/50">
+                <th className="!px-6 !py-4 !text-slate-500 !font-bold !text-xs !uppercase !tracking-widest">Proyecto</th>
+                <th className="!px-6 !py-4 !text-slate-500 !font-bold !text-xs !uppercase !tracking-widest">Tipo / Ubicación</th>
+                <th className="!px-6 !py-4 !text-slate-500 !font-bold !text-xs !uppercase !tracking-widest">Créditos</th>
+                <th className="!px-6 !py-4 !text-slate-500 !font-bold !text-xs !uppercase !tracking-widest">Precio (USD)</th>
+                <th className="!px-6 !py-4 !text-slate-500 !font-bold !text-xs !uppercase !tracking-widest">Estado</th>
+                <th className="!px-6 !py-4 !text-slate-500 !font-bold !text-xs !uppercase !tracking-widest !text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="!divide-y !divide-slate-100">
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="!animate-pulse">
+                    <td colSpan={6} className="!px-6 !py-8">
+                      <div className="!h-4 !bg-slate-100 !rounded-full !w-3/4" />
+                    </td>
+                  </tr>
+                ))
+              ) : projects.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="!px-6 !py-12 !text-center">
+                    <div className="!flex !flex-col !items-center !gap-3">
+                      <div className="!w-16 !h-16 !bg-slate-50 !rounded-full !flex !items-center !justify-center">
+                        <TreePine className="!w-8 !h-8 !text-slate-300" />
+                      </div>
+                      <p className="!text-slate-400 !font-medium">No se encontraron proyectos</p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {projects.map((project) => (
-                  <tr key={project.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {project.imageUrl ? (
-                          <img
-                            src={project.imageUrl}
-                            alt={project.name}
-                            className="w-12 h-12 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                            <TreePine className="w-6 h-6 text-emerald-600" />
-                          </div>
-                        )}
+              ) : (
+                projects.map((project) => (
+                  <tr key={project.id} className="!hover:bg-slate-50/50 !transition-colors !group">
+                    <td className="!px-6 !py-5">
+                      <div className="!flex !items-center !gap-4">
+                        <div className="!w-12 !h-12 !rounded-xl !bg-slate-100 !overflow-hidden !flex-shrink-0">
+                          {project.imageUrl ? (
+                            <img src={project.imageUrl} alt={project.name} className="!w-full !h-full !object-cover" />
+                          ) : (
+                            <div className="!w-full !h-full !flex !items-center !justify-center">
+                              <ImageIcon className="!w-5 !h-5 !text-slate-400" />
+                            </div>
+                          )}
+                        </div>
                         <div>
-                          <p className="font-medium text-gray-900">{project.name}</p>
-                          <p className="text-sm text-gray-500">{project.code}</p>
+                          <div className="!font-bold !text-slate-900 !group-hover:text-emerald-600 !transition-colors">
+                            {project.name}
+                          </div>
+                          <div className="!text-xs !font-mono !text-slate-400 !mt-0.5">{project.code}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        projectTypeConfig[project.projectType]?.color || 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {projectTypeConfig[project.projectType]?.label || project.projectType}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="flex items-center gap-1 text-gray-600">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        {project.country}
-                        {project.region && `, ${project.region}`}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        statusConfig[project.status]?.bgColor || 'bg-gray-100'
-                      } ${statusConfig[project.status]?.color || 'text-gray-700'}`}>
-                        {statusConfig[project.status]?.label || project.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {formatCurrency(project.pricePerTonCLP)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm">
-                        <span className="text-emerald-600 font-medium">
-                          {formatNumber(project.availableCredits)}
+                    <td className="!px-6 !py-5">
+                      <div className="!flex !flex-col !gap-1.5">
+                        <span className={`!inline-flex !px-2.5 !py-0.5 !rounded-lg !text-[10px] !font-black !uppercase !tracking-wider !w-fit ${projectTypeConfig[project.projectType]?.color || 'bg-slate-100 text-slate-600'}`}>
+                          {projectTypeConfig[project.projectType]?.label || project.projectType}
                         </span>
-                        <span className="text-gray-400"> / </span>
-                        <span className="text-gray-600">
-                          {formatNumber(project.totalCredits)}
-                        </span>
+                        <div className="!flex !items-center !gap-1 !text-slate-500 !text-sm">
+                          <MapPin className="!w-3 !h-3" />
+                          {project.region}, {project.country}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link
-                          to={`/admin/proyectos/${project.id}`}
-                          className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                          title="Ver detalle"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
+                    <td className="!px-6 !py-5">
+                      <div className="!flex !flex-col">
+                        <span className="!font-bold !text-slate-900">
+                          {project.availableCredits?.toLocaleString()}
+                        </span>
+                        <span className="!text-xs !text-slate-400">de {project.totalCredits?.toLocaleString()} tCO2e</span>
+                      </div>
+                    </td>
+                    <td className="!px-6 !py-5">
+                      <div className="!font-bold !text-slate-900">
+                        ${project.pricePerTonUSD?.toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="!px-6 !py-5">
+                      <span className={`!inline-flex !items-center !gap-1.5 !px-3 !py-1 !rounded-full !text-xs !font-bold ${statusConfig[project.status]?.bgColor} ${statusConfig[project.status]?.color}`}>
+                        <span className="!w-1.5 !h-1.5 !rounded-full !bg-current" />
+                        {statusConfig[project.status]?.label}
+                      </span>
+                    </td>
+                    <td className="!px-6 !py-5 !text-right">
+                      <div className="!flex !items-center !justify-end !gap-2">
                         <button
                           onClick={() => openEditModal(project)}
-                          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="!p-2 !text-slate-400 !hover:text-blue-600 !hover:bg-blue-50 !rounded-xl !transition-all"
                           title="Editar"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="!w-5 !h-5" />
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(project.id)}
-                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="!p-2 !text-slate-400 !hover:text-red-600 !hover:bg-red-50 !rounded-xl !transition-all"
                           title="Eliminar"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="!w-5 !h-5" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-        {/* Paginación */}
-        {pagination.totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <p className="text-sm text-gray-500">
-              Mostrando {((pagination.page - 1) * pagination.limit) + 1} a{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} de{' '}
-              {pagination.total} proyectos
+        {/* Pagination */}
+        {!loading && pagination.totalPages > 1 && (
+          <div className="!px-6 !py-4 !bg-slate-50/50 !border-t !border-slate-100 !flex !items-center !justify-between">
+            <p className="!text-sm !text-slate-500 !font-medium">
+              Mostrando <span className="!font-bold !text-slate-900">{projects.length}</span> de <span className="!font-bold !text-slate-900">{pagination.total}</span> proyectos
             </p>
-            <div className="flex items-center gap-2">
+            <div className="!flex !items-center !gap-2">
               <button
                 onClick={() => handlePageChange(pagination.page - 1)}
                 disabled={pagination.page === 1}
-                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="!p-2 !rounded-xl !border !border-slate-200 !bg-white !text-slate-600 !disabled:opacity-50 !hover:bg-slate-50 !transition-all"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="!w-5 !h-5" />
               </button>
+              <div className="!flex !items-center !gap-1">
+                {Array.from({ length: pagination.totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handlePageChange(i + 1)}
+                    className={`!w-10 !h-10 !rounded-xl !text-sm !font-bold !transition-all ${
+                      pagination.page === i + 1
+                        ? '!bg-emerald-600 !text-white !shadow-md !shadow-emerald-100'
+                        : '!text-slate-600 !hover:bg-slate-100'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
               <button
                 onClick={() => handlePageChange(pagination.page + 1)}
                 disabled={pagination.page === pagination.totalPages}
-                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="!p-2 !rounded-xl !border !border-slate-200 !bg-white !text-slate-600 !disabled:opacity-50 !hover:bg-slate-50 !transition-all"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="!w-5 !h-5" />
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Modal Crear/Editar */}
+      {/* Project Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
-            <div 
-              className="fixed inset-0 bg-black/50 transition-opacity"
-              onClick={() => setShowModal(false)}
-            />
-            
-            <div className="relative bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-auto p-6 overflow-hidden">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">
+        <div className="!fixed !inset-0 !z-50 !flex !items-center !justify-center !p-4 !bg-slate-900/60 !backdrop-blur-sm !animate-in !fade-in !duration-300">
+          <div className="!bg-white !rounded-[2.5rem] !shadow-2xl !w-full !max-w-3xl !max-h-[90vh] !overflow-hidden !flex !flex-col !animate-in !zoom-in-95 !duration-300">
+            <div className="!p-8 !border-b !border-slate-100 !flex !items-center !justify-between !bg-slate-50/50">
+              <div>
+                <h2 className="!text-2xl !font-black !text-slate-900">
                   {modalMode === 'create' ? 'Nuevo Proyecto' : 'Editar Proyecto'}
                 </h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <p className="!text-slate-500 !text-sm !font-medium">Completa la información técnica del proyecto.</p>
               </div>
+              <button onClick={() => setShowModal(false)} className="!p-2 !hover:bg-slate-200 !rounded-full !transition-colors">
+                <X className="!w-6 !h-6 !text-slate-400" />
+              </button>
+            </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Código *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.code}
-                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+            <form onSubmit={handleSubmit} className="!p-8 !overflow-y-auto !flex-1 !space-y-6">
+              <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+                <div className="!space-y-2">
+                  <label className="!text-sm !font-bold !text-slate-700 !ml-1">Nombre del Proyecto</label>
+                  <input
+                    required
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="!w-full !px-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
+                    placeholder="Ej: Reforestación Amazonía"
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tipo de Proyecto *
-                    </label>
-                    <select
-                      value={formData.projectType}
-                      onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      required
-                    >
-                      {Object.entries(projectTypeConfig).map(([key, config]) => (
-                        <option key={key} value={key}>{config.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Estado
-                    </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                    >
-                      {Object.entries(statusConfig).filter(([k]) => k !== 'deleted').map(([key, config]) => (
-                        <option key={key} value={key}>{config.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="!space-y-2">
+                  <label className="!text-sm !font-bold !text-slate-700 !ml-1">Código Único</label>
+                  <input
+                    required
+                    type="text"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    className="!w-full !px-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
+                    placeholder="Ej: REF-001"
+                  />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      País *
-                    </label>
+                <div className="!space-y-2">
+                  <label className="!text-sm !font-bold !text-slate-700 !ml-1">Tipo de Proyecto</label>
+                  <select
+                    value={formData.projectType}
+                    onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
+                    className="!w-full !px-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
+                  >
+                    {Object.entries(projectTypeConfig).map(([key, config]) => (
+                      <option key={key} value={key}>{config.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="!space-y-2">
+                  <label className="!text-sm !font-bold !text-slate-700 !ml-1">Estado</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="!w-full !px-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
+                  >
+                    <option value="active">Activo</option>
+                    <option value="inactive">Inactivo</option>
+                    <option value="coming_soon">Próximamente</option>
+                  </select>
+                </div>
+                <div className="!space-y-2">
+                  <label className="!text-sm !font-bold !text-slate-700 !ml-1">País</label>
+                  <input
+                    required
+                    type="text"
+                    value={formData.country}
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    className="!w-full !px-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
+                  />
+                </div>
+                <div className="!space-y-2">
+                  <label className="!text-sm !font-bold !text-slate-700 !ml-1">Región / Ciudad</label>
+                  <input
+                    required
+                    type="text"
+                    value={formData.region}
+                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                    className="!w-full !px-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
+                  />
+                </div>
+                <div className="!space-y-2">
+                  <label className="!text-sm !font-bold !text-slate-700 !ml-1">Precio por Tonelada (USD)</label>
+                  <div className="!relative">
+                    <DollarSign className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !text-slate-400 !w-4 !h-4" />
                     <input
-                      type="text"
-                      value={formData.country}
-                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                       required
+                      type="number"
+                      step="0.01"
+                      value={formData.pricePerTonUSD}
+                      onChange={(e) => setFormData({ ...formData, pricePerTonUSD: e.target.value === '' ? '' : Number(e.target.value) })}
+                      className="!w-full !pl-10 !pr-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Región
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.region}
-                      onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Precio por Tonelada (CLP)
-                    </label>
+                <div className="!space-y-2">
+                  <label className="!text-sm !font-bold !text-slate-700 !ml-1">Precio por Tonelada (CLP)</label>
+                  <div className="!relative">
+                    <DollarSign className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !text-slate-400 !w-4 !h-4" />
                     <input
+                      required
                       type="number"
                       value={formData.pricePerTonCLP}
-                      onChange={(e) => setFormData({ ...formData, pricePerTonCLP: e.target.value ? Number(e.target.value) : '' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Precio por Tonelada (USD)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.pricePerTonUSD}
-                      onChange={(e) => setFormData({ ...formData, pricePerTonUSD: e.target.value ? Number(e.target.value) : '' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      onChange={(e) => setFormData({ ...formData, pricePerTonCLP: e.target.value === '' ? '' : Number(e.target.value) })}
+                      className="!w-full !pl-10 !pr-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
                     />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Créditos Disponibles
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.availableCredits}
-                      onChange={(e) => setFormData({ ...formData, availableCredits: e.target.value ? Number(e.target.value) : '' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Créditos Totales
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.totalCredits}
-                      onChange={(e) => setFormData({ ...formData, totalCredits: e.target.value ? Number(e.target.value) : '' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
+                <div className="!space-y-2">
+                  <label className="!text-sm !font-bold !text-slate-700 !ml-1">Créditos Totales</label>
+                  <input
+                    required
+                    type="number"
+                    value={formData.totalCredits}
+                    onChange={(e) => setFormData({ ...formData, totalCredits: e.target.value === '' ? '' : Number(e.target.value) })}
+                    className="!w-full !px-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
+                  />
                 </div>
+                <div className="!space-y-2">
+                  <label className="!text-sm !font-bold !text-slate-700 !ml-1">Créditos Disponibles</label>
+                  <input
+                    required
+                    type="number"
+                    value={formData.availableCredits}
+                    onChange={(e) => setFormData({ ...formData, availableCredits: e.target.value === '' ? '' : Number(e.target.value) })}
+                    className="!w-full !px-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
+                  />
+                </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    URL de Imagen
-                  </label>
+              <div className="!space-y-2">
+                <label className="!text-sm !font-bold !text-slate-700 !ml-1">URL de Imagen</label>
+                <div className="!relative">
+                  <ImageIcon className="!absolute !left-4 !top-1/2 !-translate-y-1/2 !text-slate-400 !w-4 !h-4" />
                   <input
                     type="url"
                     value={formData.imageUrl}
                     onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="!w-full !pl-10 !pr-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium"
+                    placeholder="https://ejemplo.com/imagen.jpg"
                   />
                 </div>
+              </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
-                  >
-                    <Save className="w-4 h-4" />
-                    {saving ? 'Guardando...' : 'Guardar'}
-                  </button>
-                </div>
-              </form>
+              <div className="!space-y-2">
+                <label className="!text-sm !font-bold !text-slate-700 !ml-1">Descripción</label>
+                <textarea
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="!w-full !px-4 !py-3 !bg-slate-50 !border-none !rounded-2xl !focus:ring-2 !focus:ring-emerald-500 !font-medium !resize-none"
+                  placeholder="Describe el impacto ambiental y social del proyecto..."
+                />
+              </div>
+            </form>
+
+            <div className="!p-8 !bg-slate-50/50 !border-t !border-slate-100 !flex !justify-end !gap-3">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="!px-6 !py-3 !rounded-2xl !font-bold !text-slate-600 !hover:bg-slate-200 !transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={saving}
+                className="!flex !items-center !gap-2 !bg-emerald-600 !hover:bg-emerald-700 !text-white !px-8 !py-3 !rounded-2xl !font-bold !transition-all !shadow-lg !shadow-emerald-100 !disabled:opacity-50"
+              >
+                {saving ? (
+                  <div className="!w-5 !h-5 !border-2 !border-white/30 !border-t-white !rounded-full !animate-spin" />
+                ) : (
+                  <Save className="!w-5 !h-5" />
+                )}
+                {modalMode === 'create' ? 'Crear Proyecto' : 'Guardar Cambios'}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Confirmar Eliminación */}
+      {/* Delete Confirmation Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4">
-            <div 
-              className="fixed inset-0 bg-black/50"
-              onClick={() => setDeleteConfirm(null)}
-            />
-            
-            <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                ¿Eliminar proyecto?
-              </h3>
-              <p className="text-gray-500 mb-6">
-                Esta acción marcará el proyecto como eliminado. No se puede deshacer.
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => handleDelete(deleteConfirm)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  Eliminar
-                </button>
-              </div>
+        <div className="!fixed !inset-0 !z-[60] !flex !items-center !justify-center !p-4 !bg-slate-900/60 !backdrop-blur-sm !animate-in !fade-in !duration-300">
+          <div className="!bg-white !rounded-[2rem] !shadow-2xl !w-full !max-w-md !p-8 !text-center !animate-in !zoom-in-95 !duration-300">
+            <div className="!w-20 !h-20 !bg-red-50 !rounded-full !flex !items-center !justify-center !mx-auto !mb-6">
+              <AlertCircle className="!w-10 !h-10 !text-red-500" />
+            </div>
+            <h3 className="!text-2xl !font-black !text-slate-900 !mb-2">¿Eliminar proyecto?</h3>
+            <p className="!text-slate-500 !font-medium !mb-8">
+              Esta acción no se puede deshacer. El proyecto será marcado como eliminado en el sistema.
+            </p>
+            <div className="!flex !gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="!flex-1 !py-4 !rounded-2xl !font-bold !text-slate-600 !bg-slate-100 !hover:bg-slate-200 !transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="!flex-1 !py-4 !rounded-2xl !font-bold !text-white !bg-red-500 !hover:bg-red-600 !transition-all !shadow-lg !shadow-red-100"
+              >
+                Eliminar
+              </button>
             </div>
           </div>
         </div>
@@ -793,3 +730,4 @@ export default function ProyectosPage() {
     </div>
   );
 }
+
