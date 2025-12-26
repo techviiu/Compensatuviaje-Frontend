@@ -1,6 +1,7 @@
 import React, { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAuth as useB2CAuth } from '../../b2c/context/AuthContext';
 import { getRedirectPath } from '../services/authService';
 import { Eye, EyeOff, AlertCircle, ArrowLeft, Loader2, Facebook, Twitter } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -22,6 +23,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, error, clearError, isLoading: authLoading } = useAuth();
+  const { login: loginWithGoogle } = useB2CAuth();
   
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -30,6 +32,22 @@ const Login: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleError, setGoogleError] = useState('');
+  const [isGoogleButtonLoading, setIsGoogleButtonLoading] = useState(false);
+
+  // Handler para login con Google (B2C)
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleError('');
+      setIsGoogleButtonLoading(true);
+      await loginWithGoogle();
+      // Si llega aquí sin redirigir, es un error
+    } catch (err: any) {
+      setGoogleError('Error al iniciar sesión con Google');
+      console.error('Error en login con Google:', err);
+      setIsGoogleButtonLoading(false);
+    }
+  };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const { name, value, type, checked } = e.target;
@@ -133,10 +151,22 @@ const Login: React.FC = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <button className="!w-full !max-w-xs !flex !items-center !justify-center !gap-3 !py-3 !px-6 !rounded-full !bg-white/90 !text-emerald-800 !font-semibold !shadow-lg hover:!bg-white hover:!scale-105 !transition-all">
-              <span className="!font-bold !text-lg"></span>
-                <BsGoogle className="!w-6 !h-6" />
-              Iniciar sesión con Google
+            <button 
+              onClick={handleGoogleLogin}
+              disabled={isGoogleButtonLoading}
+              className="!w-full !max-w-xs !flex !items-center !justify-center !gap-3 !py-3 !px-6 !rounded-full !bg-white/90 !text-emerald-800 !font-semibold !shadow-lg hover:!bg-white hover:!scale-105 !transition-all disabled:!opacity-50 disabled:!cursor-not-allowed"
+            >
+              {isGoogleButtonLoading ? (
+                <>
+                  <Loader2 className="!w-6 !h-6 !animate-spin" />
+                  Conectando...
+                </>
+              ) : (
+                <>
+                  <BsGoogle className="!w-6 !h-6" />
+                  Iniciar sesión con Google
+                </>
+              )}
             </button>
             
             <div className="!flex !gap-4 !w-full !max-w-xs">
@@ -305,10 +335,19 @@ const Login: React.FC = () => {
             <p className="!text-emerald-200/60 !text-sm !mb-4">O continúa con</p>
             <div className="!flex !justify-center !gap-4 lg:!hidden">
                {/* Mobile Social Buttons */}
-               <button className="!p-3 !rounded-full !bg-emerald-800 !text-white !border !border-emerald-700"><span className="!font-bold">G</span></button>
-               <button className="!p-3 !rounded-full !bg-emerald-800 !text-white !border !border-emerald-700"><Facebook className="!w-5 !h-5"/></button>
-               <button className="!p-3 !rounded-full !bg-emerald-800 !text-white !border !border-emerald-700"><Twitter className="!w-5 !h-5"/></button>
+               <button 
+                 onClick={handleGoogleLogin}
+                 disabled={isGoogleButtonLoading}
+                 className="!p-3 !rounded-full !bg-emerald-800 !text-white !border !border-emerald-700 hover:!bg-emerald-700 !transition-all disabled:!opacity-50"
+               >
+                 {isGoogleButtonLoading ? <Loader2 className="!w-5 !h-5 !animate-spin" /> : <BsGoogle className="!w-5 !h-5"/>}
+               </button>
+               <button className="!p-3 !rounded-full !bg-emerald-800 !text-white !border !border-emerald-700 hover:!bg-emerald-700 !transition-all"><Facebook className="!w-5 !h-5"/></button>
+               <button className="!p-3 !rounded-full !bg-emerald-800 !text-white !border !border-emerald-700 hover:!bg-emerald-700 !transition-all"><Twitter className="!w-5 !h-5"/></button>
             </div>
+            {googleError && (
+              <p className="!text-red-400 !text-sm !mt-2">{googleError}</p>
+            )}
             <div className="!mt-6">
               <span className="!text-emerald-200/80">¿No tienes cuenta? </span>
               <Link to="/register" className="!text-white !font-bold hover:!text-emerald-300 !underline !decoration-2 !underline-offset-4 !transition-colors">

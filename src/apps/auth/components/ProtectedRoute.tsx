@@ -16,18 +16,38 @@ interface ProtectedRouteProps {
   fallbackPath?: string;
 }
 
+// Helper para obtener ruta por tipo de usuario
+const getRedirectByUserType = (userType: UserType): string => {
+  switch (userType) {
+    case 'superadmin':
+      return '/admin';
+    case 'partner':
+      return '/partner/dashboard';
+    case 'b2c':
+      return '/calculator';
+    case 'b2b':
+    default:
+      return '/b2b/dashboard';
+  }
+};
+
+/**
+ * ProtectedRoute - Protege rutas que requieren autenticación
+ * Usa Navigate directamente (sin useEffect) para evitar loops infinitos.
+ * El componente es puramente declarativo - las decisiones se toman en el render.
+ */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredPermissions = [],
   requiredUserTypes = [],
   requireAdmin = false,
   requireSuperAdmin = false,
-  fallbackPath = '/dashboard',
+  fallbackPath = '/login',
 }) => {
   const { user, isAuthenticated, isLoading, hasAnyPermission } = useAuth();
   const location = useLocation();
 
-  // Loading state
+  // Loading state - mostrar spinner mientras verifica sesión
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -44,49 +64,29 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // SuperAdmin required
+  // SuperAdmin required check
   if (requireSuperAdmin && !user.isSuperAdmin) {
     return <Navigate to={fallbackPath} replace />;
   }
 
-  // Admin required (company admin or super admin)
+  // Admin required check
   if (requireAdmin && !user.isAdmin && !user.isSuperAdmin) {
     return <Navigate to={fallbackPath} replace />;
   }
 
-  // Check user type restrictions
-  if (requiredUserTypes.length > 0) {
-    if (!requiredUserTypes.includes(user.userType)) {
-      // Redirect based on user type
-      const redirectPath = getRedirectByUserType(user.userType);
-      return <Navigate to={redirectPath} replace />;
-    }
+  // User type check
+  if (requiredUserTypes.length > 0 && !requiredUserTypes.includes(user.userType)) {
+    const redirectPath = getRedirectByUserType(user.userType);
+    return <Navigate to={redirectPath} replace />;
   }
 
-  // Check permissions
-  if (requiredPermissions.length > 0) {
-    // SuperAdmin bypasses all permission checks
-    if (!user.isSuperAdmin && !hasAnyPermission(requiredPermissions)) {
-      return <Navigate to={fallbackPath} replace />;
-    }
+  // Permissions check
+  if (requiredPermissions.length > 0 && !user.isSuperAdmin && !hasAnyPermission(requiredPermissions)) {
+    return <Navigate to={fallbackPath} replace />;
   }
 
+  // All checks passed - render children
   return <>{children}</>;
-};
-
-// Helper para obtener ruta por tipo de usuario
-const getRedirectByUserType = (userType: UserType): string => {
-  switch (userType) {
-    case 'superadmin':
-      return '/admin';
-    case 'partner':
-      return '/partner/dashboard';
-    case 'b2c':
-      return '/calculator';
-    case 'b2b':
-    default:
-      return '/dashboard';
-  }
 };
 
 export default ProtectedRoute;
@@ -97,7 +97,7 @@ export default ProtectedRoute;
 
 // Ruta solo para SuperAdmin
 export const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ProtectedRoute requireSuperAdmin fallbackPath="/dashboard">
+  <ProtectedRoute requireSuperAdmin fallbackPath="/login">
     {children}
   </ProtectedRoute>
 );
@@ -123,9 +123,9 @@ export const PartnerRoute: React.FC<{ children: React.ReactNode }> = ({ children
   </ProtectedRoute>
 );
 
-// Ruta para Admin de empresa
+// Ruta solo para Admin de empresa
 export const CompanyAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ProtectedRoute requireAdmin fallbackPath="/dashboard">
+  <ProtectedRoute requireAdmin fallbackPath="/b2b/dashboard">
     {children}
   </ProtectedRoute>
 );

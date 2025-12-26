@@ -129,7 +129,8 @@ const LogoLoopComponent: React.FC<Props> = ({ logos, logoHeight = 60, gap = 48, 
         try {
           // try to dynamically import candidate module names
           // eslint-disable-next-line no-await-in-loop
-          const mod = await import(/* webpackIgnore: true */ name).catch(() => null);
+          // @ts-ignore - Dynamic import with variable
+          const mod = await import(/* @vite-ignore */ /* webpackIgnore: true */ name).catch(() => null);
           if (mod && mounted) {
             const comp = (mod as any).default ?? (mod as any).LogoLoop ?? mod;
             setRemoteComp(() => comp);

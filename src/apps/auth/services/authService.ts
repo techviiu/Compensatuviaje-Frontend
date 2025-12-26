@@ -81,6 +81,9 @@ class AuthService {
       // Guardar tokens
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('refresh_token', response.refresh_token);
+      
+      // Guardar user_info para evitar llamadas adicionales
+      localStorage.setItem('user_info', JSON.stringify(response.user_info));
     }
 
     return response;
@@ -118,16 +121,25 @@ class AuthService {
       const token = this.getToken();
       if (!token) return null;
 
-      const response = await apiClient.get<{ success: boolean; user_info: UserInfo }>(
-        '/b2b/profile/me'
-      );
-
-      if (response.success && response.user_info) {
-        // Agregar user_type
-        response.user_info.user_type = determineUserType(response.user_info);
-        return response;
+      // Primero intentar recuperar de localStorage
+      const storedUserInfo = localStorage.getItem('user_info');
+      if (storedUserInfo) {
+        try {
+          const userInfo = JSON.parse(storedUserInfo) as UserInfo;
+          // Asegurar que tenga user_type
+          if (!userInfo.user_type) {
+            userInfo.user_type = determineUserType(userInfo);
+          }
+          return { success: true, user_info: userInfo };
+        } catch (e) {
+          // Si hay error parseando, continuar con la llamada API
+          localStorage.removeItem('user_info');
+        }
       }
 
+      // Si es SuperAdmin o no hay info guardada, no hacer llamada a /b2b/profile/me
+      // porque ese endpoint requiere contexto de empresa
+      // En su lugar, retornar null y forzar re-login
       return null;
     } catch (error) {
       console.error('Error obteniendo usuario actual:', error);
@@ -213,6 +225,7 @@ class AuthService {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
+    localStorage.removeItem('user_info');
   }
 }
 

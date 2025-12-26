@@ -1,28 +1,42 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import AdminDashboard from '../../admin/components/AdminDashboard';
 
+/**
+ * DashboardPage - Página hub que redirige según el tipo de usuario
+ * Usa Navigate directamente para evitar loops infinitos con useEffect
+ */
 const DashboardPage = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  // Redirigir usuarios B2B al dashboard correcto
-  if (user?.userType === 'b2b') {
-    return <Navigate to="/b2b/dashboard" replace />;
+  // Mostrar loading mientras carga
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4" />
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    );
   }
 
-  // Redirigir usuarios B2C a su dashboard
-  if (user?.userType === 'b2c') {
-    return <Navigate to="/b2c/dashboard" replace />;
+  // Sin usuario, ir a login
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
-  // SuperAdmin ve el AdminDashboard en /dashboard
-  if (user?.userType === 'superadmin') {
-    return <AdminDashboard />;
+  // Redirigir según tipo de usuario
+  switch (user.userType) {
+    case 'b2b':
+      return <Navigate to="/b2b/dashboard" replace />;
+    case 'b2c':
+      return <Navigate to="/b2c/dashboard" replace />;
+    case 'superadmin':
+      return <Navigate to="/admin" replace />;
+    default:
+      return <Navigate to="/login" replace />;
   }
-
-  // Si no es ninguno, redirigir al login
-  return <Navigate to="/login" replace />;
 };
 
 export default DashboardPage;

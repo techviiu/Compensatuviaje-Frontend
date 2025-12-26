@@ -43,7 +43,7 @@ import B2CCertificatesPage from './apps/b2c/pages/B2CCertificatesPage';
 import B2CCalculatorPage from './apps/b2c/pages/B2CCalculatorPage';
 
 // Pages - Admin
-import AdminDashboardPage from './apps/admin/pages/AdminDashboardPage';
+import AdminRoutes from './apps/admin/routes';
 import VerificationPage from './apps/admin/pages/VerificationPage';
 import BatchUploadPage from './apps/admin/pages/BatchUploadPage';
 
@@ -163,18 +163,10 @@ function App() {
             {/* ===================== */}
             
             <Route 
-              path="/admin/verification" 
+              path="/admin/*" 
               element={
                 <SuperAdminRoute>
-                  <VerificationPage />
-                </SuperAdminRoute>
-              } 
-            />
-            <Route 
-              path="/admin/batch-upload" 
-              element={
-                <SuperAdminRoute>
-                  <BatchUploadPage />
+                  <AdminRoutes />
                 </SuperAdminRoute>
               } 
             />

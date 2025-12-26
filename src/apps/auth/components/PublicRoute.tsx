@@ -7,9 +7,15 @@ interface PublicRouteProps {
   children: React.ReactNode;
 }
 
+/**
+ * PublicRoute - Componente para rutas públicas (login, register, etc.)
+ * Si el usuario está autenticado, lo redirige a su dashboard correspondiente.
+ * Usa Navigate directamente sin useEffect para evitar loops.
+ */
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
+  // Mostrar loading mientras verifica autenticación
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -21,12 +27,13 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     );
   }
 
+  // Si está autenticado, redirigir inmediatamente con Navigate
   if (isAuthenticated && user) {
-    // Si ya está autenticado, redirigir según tipo de usuario
     const redirectPath = getRedirectPath(user.userType);
     return <Navigate to={redirectPath} replace />;
   }
 
+  // Si no está autenticado, mostrar children (login, register, etc.)
   return <>{children}</>;
 };
 
